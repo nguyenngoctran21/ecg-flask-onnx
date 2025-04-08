@@ -9,6 +9,8 @@ from PIL import Image
 import io
 import base64
 import tempfile
+import os
+import uuid
 
 app = Flask(__name__)
 
@@ -80,13 +82,12 @@ def index():
         model_file = request.files.get('model')
 
         if not image_file or not model_file:
-            return render_template('index.html', error="Vui lòng tải lên đầy đủ ảnh ECG và mô hình ONNX!")
+            return render_template('index.html', error="Vui lòng tải ảnh ECG và mô hình ONNX!")
 
         beats, time_ms, signal, r_peaks = process_ecg_image(image_file)
         if beats is None:
-            return render_template('index.html', error="Không tìm thấy sóng tim trong ảnh ECG đã tải lên!")
+            return render_template('index.html', error="Không tìm thấy sóng tim trong ảnh đã tải lên!")
 
-        # Lưu mô hình tạm thời để khởi tạo session
         with tempfile.NamedTemporaryFile(delete=False, suffix=".onnx") as tmp_model:
             model_path = tmp_model.name
             model_file.save(model_path)
@@ -97,7 +98,7 @@ def index():
         preds = np.argmax(outputs, axis=1)
         pred_labels = [LABEL_MAP[p] for p in preds]
 
-        # Vẽ ảnh ECG và nhãn
+        # Vẽ ảnh ECG
         fig, ax = plt.subplots(figsize=(18, 4))
         ax.plot(time_ms, signal, color='black', linewidth=1.2, label="ECG LEAD II")
         for i, r in enumerate(r_peaks[:len(pred_labels)]):
@@ -111,14 +112,15 @@ def index():
         ax.legend()
         ax.grid(True)
 
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches='tight')
-        buf.seek(0)
-        image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-        image_uri = "data:image/png;base64," + image_base64
+        # Lưu ảnh kết quả vào static/results/
+        os.makedirs("static/results", exist_ok=True)
+        img_filename = f"{uuid.uuid4().hex}.png"
+        img_path = os.path.join("static/results", img_filename)
+        fig.savefig(img_path, format="png", bbox_inches="tight")
+        image_url = f"/static/results/{img_filename}"
 
         results = [(i+1, lbl, LABEL_NAME[lbl]) for i, lbl in enumerate(pred_labels)]
 
-        return render_template('index.html', result_image=image_uri, results=results)
+        return render_template('index.html', result_image=image_url, results=results)
 
     return render_template('index.html')
