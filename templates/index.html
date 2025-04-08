@@ -1,16 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Dự đoán nhịp tim từ ảnh ECG</title>
+    <meta charset="UTF-8">
+    <title>ECG Inference App</title>
+    <style>
+        body { font-family: Arial; background: #f4f4f4; padding: 40px; text-align: center; }
+        .upload-box { background: white; padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0 0 10px #ccc; }
+        input[type=file], button { margin-top: 10px; }
+        .error { color: red; margin-top: 20px; }
+        .results img { max-width: 90%; margin-top: 30px; }
+    </style>
 </head>
 <body>
-    <h1>🫀 Upload ảnh ECG (LEAD II)</h1>
-    {% if error %}
-    <p style="color:red;">{{ error }}</p>
-    {% endif %}
-    <form action="/" method="POST" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/*">
-        <button type="submit">Dự đoán</button>
+    <h1>Phân tích Sóng ECG từ Ảnh</h1>
+    <form class="upload-box" method="POST" enctype="multipart/form-data">
+        <div>
+            <label>Chọn ảnh ECG:</label><br>
+            <input type="file" name="image" accept="image/*" required>
+        </div>
+        <div>
+            <label>Chọn mô hình ONNX:</label><br>
+            <input type="file" name="model" accept=".onnx" required>
+        </div>
+        <div>
+            <button type="submit">Dự đoán</button>
+        </div>
     </form>
+
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if result_image %}
+        <div class="results">
+            <h2>Kết quả Phân loại</h2>
+            <img src="{{ result_image }}" alt="ECG Result">
+        </div>
+    {% endif %}
 </body>
 </html>
