@@ -80,26 +80,24 @@ def index():
         model_file = request.files.get('model')
 
         if not image_file or not model_file:
-            return render_template('index.html', error="Vui lòng chọn cả ảnh ECG và mô hình .onnx!")
+            return render_template('index.html', error="Vui lòng tải lên đầy đủ ảnh ECG và mô hình ONNX!")
 
         beats, time_ms, signal, r_peaks = process_ecg_image(image_file)
         if beats is None:
-            return render_template('index.html', error="Không tìm thấy sóng tim trong ảnh")
+            return render_template('index.html', error="Không tìm thấy sóng tim trong ảnh ECG đã tải lên!")
 
-        # Lưu mô hình tạm thời
+        # Lưu mô hình tạm thời để khởi tạo session
         with tempfile.NamedTemporaryFile(delete=False, suffix=".onnx") as tmp_model:
             model_path = tmp_model.name
             model_file.save(model_path)
 
-        # Load mô hình
         session = ort.InferenceSession(model_path)
-
         input_array = np.expand_dims(beats, axis=1)
         outputs = session.run(None, {session.get_inputs()[0].name: input_array})[0]
         preds = np.argmax(outputs, axis=1)
         pred_labels = [LABEL_MAP[p] for p in preds]
 
-        # Vẽ ảnh kết quả
+        # Vẽ ảnh ECG và nhãn
         fig, ax = plt.subplots(figsize=(18, 4))
         ax.plot(time_ms, signal, color='black', linewidth=1.2, label="ECG LEAD II")
         for i, r in enumerate(r_peaks[:len(pred_labels)]):
@@ -107,7 +105,7 @@ def index():
             nhan = pred_labels[i]
             ax.axvline(x=t, color='red', linestyle='--', linewidth=1)
             ax.text(t + 5, signal[r] + 0.3, f"{nhan} ({i+1})", color='red', fontsize=9, fontweight='bold')
-        ax.set_title("Sóng ECG LEAD II")
+        ax.set_title("Sóng ECG LEAD II với nhãn từng nhịp")
         ax.set_xlabel("Thời gian (ms)")
         ax.set_ylabel("Biên độ (mV)")
         ax.legend()
@@ -119,6 +117,8 @@ def index():
         image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
         image_uri = "data:image/png;base64," + image_base64
 
-        return render_template('index.html', result_image=image_uri)
+        results = [(i+1, lbl, LABEL_NAME[lbl]) for i, lbl in enumerate(pred_labels)]
+
+        return render_template('index.html', result_image=image_uri, results=results)
 
     return render_template('index.html')
