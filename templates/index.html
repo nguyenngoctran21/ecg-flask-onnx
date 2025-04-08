@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head><title>ECG ONNX App</title></head>
+<body>
+    <h2>📤 Upload ảnh ECG</h2>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <input type="submit" value="Dự đoán">
+    </form>
+    {% if image_url %}
+        <h3>Kết quả</h3>
+        <img src="{{ image_url }}" width="100%%">
+        <p><strong>Nhãn từng nhịp:</strong> {{ results }}</p>
+    {% endif %}
+</body>
+</html>

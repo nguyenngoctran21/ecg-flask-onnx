@@ -1,0 +1,7 @@
+flask
+onnxruntime
+numpy
+opencv-python
+matplotlib
+scipy
+gunicorn
